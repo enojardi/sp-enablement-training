@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<unload unload_date="2016-07-12 22:25:42">
+<sys_remote_update_set action="INSERT_OR_UPDATE">
+<application display_value="Global">global</application>
+<application_name>Global</application_name>
+<application_scope>global</application_scope>
+<application_version/>
+<collisions/>
+<commit_date/>
+<deleted/>
+<description>Contains the Hackathon Registration Widget Components for the SP Enablement Training.</description>
+<inserted/>
+<name>SP Enablement - Hackathon Registration Widget</name>
+<origin_sys_id/>
+<release_date/>
+<remote_sys_id>66469fa513e866003e2250f82244b021</remote_sys_id>
+<state>loaded</state>
+<summary/>
+<sys_class_name>sys_remote_update_set</sys_class_name>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>59e5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<update_set display_value=""/>
+<update_source display_value=""/>
+<updated/>
+</sys_remote_update_set>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_widget_60d06934132c26003e2250f82244b0ca</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sp_widget"&gt;&lt;sp_widget action="INSERT_OR_UPDATE"&gt;&lt;client_script&gt;&lt;![CDATA[function() {
+	var c = this;
+
+	c.submitForm = function(isValid) {
+		c.submitted = true;
+
+		// check to make sure the form is completely valid
+		if (isValid) {
+			
+			//Write variables into the data object
+			c.data.first_name = c.first_name;
+			c.data.last_name = c.last_name;
+			c.data.email = c.email;
+			c.data.company = c.company;
+			c.data.event = c.select_event;
+			c.data.eventSysId = c.select_event.sys_id;
+			c.data.comments = c.comments;
+
+			c.server.update().then(function(response) {
+
+				if (response.status == 'success') {
+					$('#errorMessage').hide();
+
+					c.success = response.message;
+
+					setTimeout(function() { 
+						window.location.href = "?id=index";
+					}, 5000);
+
+				} else if (response.status == 'error') {					
+					c.message = response.message;
+				}
+			});
+		}
+
+	};
+}]]&gt;&lt;/client_script&gt;&lt;controller_as&gt;c&lt;/controller_as&gt;&lt;css&gt;#registerNow {
+  background: #D3232C;
+  border-color: #D3232C;
+}
+
+.noresize {
+  resize: none; 
+}
+
+.vresize {
+  resize: vertical; 
+}
+  
+.hresize {
+  resize: horizontal;  
+}  
+
+.errorIcon {
+  top: 10px;
+  right: 10px;
+}&lt;/css&gt;&lt;data_table&gt;sp_instance&lt;/data_table&gt;&lt;demo_data/&gt;&lt;description/&gt;&lt;docs/&gt;&lt;field_list/&gt;&lt;has_preview&gt;false&lt;/has_preview&gt;&lt;id/&gt;&lt;internal&gt;false&lt;/internal&gt;&lt;link/&gt;&lt;name&gt;Hackathon Registration&lt;/name&gt;&lt;option_schema/&gt;&lt;public&gt;false&lt;/public&gt;&lt;roles/&gt;&lt;script&gt;&lt;![CDATA[(function() {
+
+	/* Get Events for Event Select Box. Only load them initially */
+	if(!input) {
+		var events = [];
+
+		var grEvent = new GlideRecord("u_hackathon_event");
+		grEvent.addActiveQuery();
+		grEvent.query();
+		while(grEvent.next()) {
+			events.push({ 
+				"name": grEvent.getDisplayValue("u_event_name"),
+				"sys_id": grEvent.getUniqueValue()
+			});
+		}
+
+		//make events available to the client
+		data.events = events;
+	}
+	
+
+	/* Only execute when we have form input */
+	if(input) {
+
+		if(validateRegistration(input.email)){
+			var grHackathonReg = new GlideRecord('u_hackathon_registration');
+			grHackathonReg.initialize();
+			grHackathonReg.setValue('u_first_name', input.first_name);
+			grHackathonReg.setValue('u_last_name', input.last_name);
+			grHackathonReg.setValue('u_email', input.email);
+			grHackathonReg.setValue('u_company', input.company);
+			grHackathonReg.setValue('u_event', input.eventSysId);
+			grHackathonReg.setValue('u_state', 'pending');
+			grHackathonReg.setValue('u_comments', input.comments);
+			var userRegSysId = grHackathonReg.insert();
+
+			if (!gs.nil(userRegSysId)) {
+				data.status = "success";
+				data.message = gs.getMessage("Your registration has been submitted. You will be redirected to the homepage in a few seconds. If you are not being redirected click on the Logo and you will get back to the homepage.");
+			} else {
+				data.status = "error";
+			}
+		}
+
+		return data;
+	}
+})();
+
+
+
+function validateRegistration(email) {
+	var isNoDuplicate = true;
+
+	//abort if user already exists
+	if (userExists(email)) {
+		data.message = gs.getMessage("There is already a user record with that email address. Please pick another one or reset your password via the 'Login' form.");
+		data.status = "error";
+		isNoDuplicate = false;
+	}
+
+	//abort if registration already exists
+	if (registrationExists(email)) {
+		data.message = gs.getMessage("There is already a pending registration request for that email address. Please pick another one or reset your password via the 'Login' form.");
+		data.status = "error";
+		isNoDuplicate = false;
+	}
+
+	return isNoDuplicate;
+}
+
+
+function registrationExists(email) {
+	var reg = new GlideRecord("u_hackathon_registration");
+	reg.addQuery("u_email", email);
+	reg.addQuery("u_state", "pending");
+	reg.query();
+
+	return reg.hasNext();
+}
+
+function userExists(email) {
+	var usr = new GlideRecord("sys_user");
+	usr.addQuery("email", email);
+	usr.query();
+
+	return usr.hasNext();
+}]]&gt;&lt;/script&gt;&lt;servicenow&gt;false&lt;/servicenow&gt;&lt;sys_class_name&gt;sp_widget&lt;/sys_class_name&gt;&lt;sys_created_by&gt;frank.schuster&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2016-07-08 21:21:40&lt;/sys_created_on&gt;&lt;sys_customer_update&gt;true&lt;/sys_customer_update&gt;&lt;sys_id&gt;60d06934132c26003e2250f82244b0ca&lt;/sys_id&gt;&lt;sys_mod_count&gt;110&lt;/sys_mod_count&gt;&lt;sys_name&gt;Hackathon Registration&lt;/sys_name&gt;&lt;sys_package display_value="Global" source="global"&gt;global&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_replace_on_upgrade&gt;false&lt;/sys_replace_on_upgrade&gt;&lt;sys_scope display_value="Global"&gt;global&lt;/sys_scope&gt;&lt;sys_update_name&gt;sp_widget_60d06934132c26003e2250f82244b0ca&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;frank.schuster&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2016-07-12 14:33:54&lt;/sys_updated_on&gt;&lt;template&gt;&lt;![CDATA[&lt;form name="registration" ng-submit="c.submitForm(registration.$valid)" role="form" novalidate&gt;
+
+  &lt;div ng-if="c.message" id="errorMessage" class="alert alert-danger" role="alert"&gt;{{c.message}}&lt;/div&gt;
+  &lt;div ng-if="c.success" id="successMessage" class="alert alert-success" role="alert"&gt;{{c.success}}&lt;/div&gt;
+
+
+  &lt;div class="list-group list-group-sm"&gt;
+    &lt;!-- First Name --&gt;
+    &lt;div class="list-group-item" ng-class="{ 'has-error has-feedback' : registration.first_name.$invalid &amp;&amp; c.submitted}"&gt;      
+      &lt;input type="text" ng-model="c.first_name" value="" class="form-control" name="first_name" id="first_name" placeholder="First Name" ng-required="true" aria-describedby="firstNameError2Status"/&gt;  
+      &lt;p ng-show="registration.first_name.$invalid &amp;&amp; c.submitted" class="help-block"&gt;Your First Name is required.&lt;/p&gt;     
+      &lt;span ng-show="registration.first_name.$invalid &amp;&amp; c.submitted" id="errorIcon" class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true"&gt;&lt;/span&gt;
+      &lt;span ng-show="registration.first_name.$invalid &amp;&amp; c.submitted" id="firstNameError2Status" class="sr-only"&gt;(error)&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Last Name --&gt;
+    &lt;div class="list-group-item" ng-class="{ 'has-error' : registration.last_name.$invalid &amp;&amp; c.submitted }"&gt;      
+      &lt;input type="text" ng-model="c.last_name" value="" class="form-control" name="last_name" id="last_name" placeholder="Last Name" ng-required="true" /&gt;
+      &lt;p ng-show="registration.last_name.$invalid &amp;&amp; c.submitted" class="help-block"&gt;Your Last Name is required.&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Company --&gt;
+    &lt;div class="list-group-item" ng-class="{ 'has-error' : registration.company.$invalid &amp;&amp; c.submitted }"&gt;      
+      &lt;input type="text" ng-model="c.company" value="" class="form-control" id="company" name="company" placeholder="Company" ng-required="true" ng-minlength="3" ng-maxlength="10"/&gt;
+      &lt;p ng-show="registration.company.$error.minlength &amp;&amp; c.submitted" class="help-block"&gt;Company is too short.&lt;/p&gt;
+      &lt;p ng-show="registration.company.$error.maxlength &amp;&amp; c.submitted" class="help-block"&gt;Company is too long.&lt;/p&gt;
+      &lt;p ng-show="registration.company.$invalid &amp;&amp; c.submitted" class="help-block"&gt;Your Company is required.&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Email --&gt;
+    &lt;div class="list-group-item" ng-class="{ 'has-error' : registration.email.$invalid &amp;&amp; c.submitted}"&gt;            
+      &lt;input type="email" name="email" class="form-control" placeholder="E-Mail" ng-model="c.email" ng-required="true"&gt;
+      &lt;p ng-show="registration.email.$invalid &amp;&amp; c.submitted" class="help-block"&gt;Enter a valid email.&lt;/p&gt;
+    &lt;/div&gt;
+
+
+    &lt;!-- Comments --&gt;
+    &lt;div class="list-group-item"&gt;            
+      &lt;textarea class="form-control vresize" id="textarea" name="textarea" ng-model="c.comments" placeholder="Let us know if there is anything that you want to have covered."&gt;&lt;/textarea&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+
+  &lt;!-- Event Select Box --&gt;
+  &lt;div class="list-group-item" ng-class="{ 'has-error' : registration.select_event.$invalid &amp;&amp; c.submitted }"&gt;
+    &lt;label class="list-group-item no-border" for="select_team"&gt;Event&lt;/label&gt;
+    &lt;select id="select_event" name="select_event" class="form-control" ng-model="c.select_event" ng-options="event.name for event in c.data.events" ng-required="true"&gt;
+      &lt;option value="" disabled&gt;-- Choose an Event --&lt;/option&gt;
+    &lt;/select&gt;
+    &lt;p ng-show="registration.select_event.$invalid &amp;&amp; c.submitted" class="help-block"&gt;Please select an event.&lt;/p&gt;
+  &lt;/div&gt;
+
+
+  &lt;!-- Privacy Policy &amp; Terms conditions --&gt;
+  &lt;div class="list-group list-group-sm"&gt;
+    &lt;div class="list-group-item"&gt;      
+      &lt;p style="margin: 0 0 0px"&gt;Read our &lt;a href="/hackathon_terms.do" target="_blank"&gt;Hackathon Terms &amp;amp; Conditions&lt;/a&gt;&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+
+  &lt;button type="submit" id="registerNow" class="btn btn-lg btn-primary btn-block"&gt;Register Now&lt;/button&gt;
+
+&lt;/form&gt;
+]]&gt;&lt;/template&gt;&lt;/sp_widget&gt;&lt;/record_update&gt;</payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>11e5924213e0a6003e2250f82244b0f2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>Hackathon Registration</target_name>
+<type>Widget</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_container_85c22574132c26003e2250f82244b0eb</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_container"><sp_container action="INSERT_OR_UPDATE"><background_color/><background_image/><background_style>default</background_style><bootstrap_alt>false</bootstrap_alt><class_name/><container_class_name/><name>Hackathon Registration - Container 1</name><order>1</order><sp_page display_value="hackathon_registration">cdc22574132c26003e2250f82244b0ea</sp_page><subheader>false</subheader><sys_class_name>sp_container</sys_class_name><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-08 21:29:53</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>85c22574132c26003e2250f82244b0eb</sys_id><sys_mod_count>0</sys_mod_count><sys_name>Hackathon Registration - Container 1</sys_name><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_container_85c22574132c26003e2250f82244b0eb</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-08 21:29:53</sys_updated_on><width>container</width></sp_container></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>1de5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>Hackathon Registration - Container 1</target_name>
+<type>Container</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sys_dictionary_u_hackathon_event_u_event_name</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update&gt;&lt;sys_dictionary action="INSERT_OR_UPDATE" element="u_event_name" table="u_hackathon_event"&gt;&lt;active&gt;true&lt;/active&gt;&lt;array&gt;false&lt;/array&gt;&lt;attributes/&gt;&lt;audit&gt;false&lt;/audit&gt;&lt;calculation&gt;&lt;![CDATA[(function calculatedFieldValue(current) {
+
+	// Add your code here
+	return '';  // return the calculated value
+
+})(current);]]&gt;&lt;/calculation&gt;&lt;choice/&gt;&lt;choice_field/&gt;&lt;choice_table/&gt;&lt;column_label&gt;Event Name&lt;/column_label&gt;&lt;comments/&gt;&lt;create_roles/&gt;&lt;default_value/&gt;&lt;defaultsort/&gt;&lt;delete_roles/&gt;&lt;dependent/&gt;&lt;dependent_on_field/&gt;&lt;display&gt;true&lt;/display&gt;&lt;dynamic_creation&gt;false&lt;/dynamic_creation&gt;&lt;dynamic_creation_script/&gt;&lt;dynamic_default_value/&gt;&lt;dynamic_ref_qual/&gt;&lt;element&gt;u_event_name&lt;/element&gt;&lt;element_reference&gt;false&lt;/element_reference&gt;&lt;foreign_database/&gt;&lt;internal_type display_value="String"&gt;string&lt;/internal_type&gt;&lt;mandatory&gt;false&lt;/mandatory&gt;&lt;max_length&gt;40&lt;/max_length&gt;&lt;name&gt;u_hackathon_event&lt;/name&gt;&lt;next_element/&gt;&lt;primary&gt;false&lt;/primary&gt;&lt;read_only&gt;false&lt;/read_only&gt;&lt;read_roles/&gt;&lt;reference/&gt;&lt;reference_cascade_rule/&gt;&lt;reference_floats&gt;false&lt;/reference_floats&gt;&lt;reference_key/&gt;&lt;reference_qual/&gt;&lt;reference_qual_condition/&gt;&lt;reference_type/&gt;&lt;sizeclass/&gt;&lt;spell_check&gt;false&lt;/spell_check&gt;&lt;staged&gt;false&lt;/staged&gt;&lt;sys_class_name&gt;sys_dictionary&lt;/sys_class_name&gt;&lt;sys_created_by&gt;frank.schuster&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2016-07-08 21:20:50&lt;/sys_created_on&gt;&lt;sys_customer_update&gt;true&lt;/sys_customer_update&gt;&lt;sys_id&gt;0a902df0132c26003e2250f82244b0dd&lt;/sys_id&gt;&lt;sys_mod_count&gt;1&lt;/sys_mod_count&gt;&lt;sys_name&gt;Event Name&lt;/sys_name&gt;&lt;sys_package display_value="Global" source="global"&gt;global&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_replace_on_upgrade&gt;false&lt;/sys_replace_on_upgrade&gt;&lt;sys_scope display_value="Global"&gt;global&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_dictionary_u_hackathon_event_u_event_name&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;frank.schuster&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2016-07-12 09:31:36&lt;/sys_updated_on&gt;&lt;table_reference&gt;false&lt;/table_reference&gt;&lt;text_index&gt;false&lt;/text_index&gt;&lt;unique&gt;false&lt;/unique&gt;&lt;use_dependent_field&gt;false&lt;/use_dependent_field&gt;&lt;use_dynamic_default&gt;false&lt;/use_dynamic_default&gt;&lt;use_reference_qualifier&gt;simple&lt;/use_reference_qualifier&gt;&lt;virtual&gt;false&lt;/virtual&gt;&lt;widget/&gt;&lt;write_roles/&gt;&lt;xml_view&gt;false&lt;/xml_view&gt;&lt;/sys_dictionary&gt;&lt;/record_update&gt;</payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>51e5924213e0a6003e2250f82244b0f2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table>u_hackathon_event</table>
+<target_name>Hackathon Event.Event Name</target_name>
+<type>Dictionary</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_instance_12c26574132c26003e2250f82244b02a</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_instance"><sp_instance action="INSERT_OR_UPDATE"><active>true</active><class_name/><color>default</color><css/><glyph/><id/><order>0</order><short_description/><size>md</size><sp_column display_value="1">82c22574132c26003e2250f82244b0fa</sp_column><sp_widget display_value="Hackathon Registration">60d06934132c26003e2250f82244b0ca</sp_widget><sys_class_name>sp_instance</sys_class_name><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-08 21:29:58</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>12c26574132c26003e2250f82244b02a</sys_id><sys_mod_count>1</sys_mod_count><sys_name/><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_instance_12c26574132c26003e2250f82244b02a</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-08 21:30:02</sys_updated_on><title/><url/><widget_parameters/></sp_instance></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>5de5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name/>
+<type>Instance</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sys_ui_page_ea23a7311320a6003e2250f82244b07e</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sys_ui_page"&gt;&lt;sys_ui_page action="INSERT_OR_UPDATE"&gt;&lt;category&gt;general&lt;/category&gt;&lt;client_script/&gt;&lt;description/&gt;&lt;direct&gt;false&lt;/direct&gt;&lt;endpoint/&gt;&lt;html&gt;&lt;![CDATA[&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null"&gt;
+
+	&lt;h1&gt;Terms &amp;amp; Conditions&lt;/h1&gt;
+	&lt;p&gt;Turkish spoon milk aromatic robust et cultivar cortado. And, that and, brewed cappuccino fair trade cortado organic aged viennese. French press fair trade, skinny arabica that grinder robusta cream beans.&lt;/p&gt;
+
+	&lt;p&gt;Blue mountain flavour, macchiato flavour mazagran filter acerbic. Shop irish latte pumpkin spice black, et, fair trade, steamed cream id and strong. Shop crema grounds grinder so shop single origin fair trade medium.&lt;/p&gt;
+
+	&lt;p&gt;Skinny single origin at barista grounds coffee mocha turkish. Bar sweet instant breve strong breve turkish organic cultivar extra. Arabica, white, in variety, sweet saucer bar organic turkish.&lt;/p&gt;
+
+	&lt;p&gt;In redeye, con panna grounds sugar chicory steamed. Frappuccino, variety, mazagran extraction whipped plunger pot brewed plunger pot. Blue mountain aromatic body saucer french press est siphon seasonal white.&lt;/p&gt;
+&lt;/j:jelly&gt;]]&gt;&lt;/html&gt;&lt;name&gt;hackathon_terms&lt;/name&gt;&lt;processing_script/&gt;&lt;sys_class_name&gt;sys_ui_page&lt;/sys_class_name&gt;&lt;sys_created_by&gt;frank.schuster&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2016-07-12 09:26:25&lt;/sys_created_on&gt;&lt;sys_customer_update&gt;true&lt;/sys_customer_update&gt;&lt;sys_id&gt;ea23a7311320a6003e2250f82244b07e&lt;/sys_id&gt;&lt;sys_mod_count&gt;0&lt;/sys_mod_count&gt;&lt;sys_name&gt;hackathon_terms&lt;/sys_name&gt;&lt;sys_package display_value="Global" source="global"&gt;global&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_replace_on_upgrade&gt;false&lt;/sys_replace_on_upgrade&gt;&lt;sys_scope display_value="Global"&gt;global&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_ui_page_ea23a7311320a6003e2250f82244b07e&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;frank.schuster&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2016-07-12 09:26:25&lt;/sys_updated_on&gt;&lt;/sys_ui_page&gt;&lt;/record_update&gt;</payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>91e5924213e0a6003e2250f82244b0f2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>hackathon_terms</target_name>
+<type>UI Page</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_page_cdc22574132c26003e2250f82244b0ea</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_page"><sp_page action="INSERT_OR_UPDATE"><css/><id>hackathon_registration</id><internal>false</internal><public>false</public><roles/><short_description/><sys_class_name>sp_page</sys_class_name><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-08 21:29:53</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>cdc22574132c26003e2250f82244b0ea</sys_id><sys_mod_count>0</sys_mod_count><sys_name>hackathon_registration</sys_name><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_page_cdc22574132c26003e2250f82244b0ea</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-08 21:29:53</sys_updated_on><title>Hackathon Registration</title></sp_page></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>9de5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>hackathon_registration</target_name>
+<type>Page</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sys_ui_section_50571d3147032100ba13a5554ee49002</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_ui_section caption="" section_id="50571d3147032100ba13a5554ee49002" sys_domain="global" table="sp_portal" version="3" view=""><sys_ui_element action="INSERT_OR_UPDATE"><element>title</element><position>0</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>1f4d7b391320a6003e2250f82244b09e</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>url_suffix</element><position>1</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>9f4d7b391320a6003e2250f82244b09e</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>.begin_split</element><position>2</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>134d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type>.begin_split</type></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>homepage</element><position>3</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>934d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>kb_knowledge_base</element><position>4</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>174d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>kb_knowledge_page</element><position>5</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>974d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>sp_chat_queue</element><position>6</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>1b4d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>login_page</element><position>7</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>9b4d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>logo</element><position>8</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>1f4d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>default</element><position>9</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>9f4d7b391320a6003e2250f82244b09f</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>.split</element><position>10</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>134d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type>.split</type></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>sys_scope</element><position>11</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>934d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>notfound_page</element><position>12</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>174d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>sc_catalog</element><position>13</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>974d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>sc_catalog_page</element><position>14</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>1b4d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>sp_rectangle_menu</element><position>15</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>9b4d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>theme</element><position>16</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>1f4d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>.end_split</element><position>17</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>9f4d7b391320a6003e2250f82244b0a0</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type>.end_split</type></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>css_variables</element><position>18</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>134d7b391320a6003e2250f82244b0a1</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_element action="INSERT_OR_UPDATE"><element>quick_start_config</element><position>19</position><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-12 11:19:00</sys_created_on><sys_id>934d7b391320a6003e2250f82244b0a1</sys_id><sys_mod_count>0</sys_mod_count><sys_ui_formatter/><sys_ui_section caption="NULL" display_value="" name="sp_portal" sys_domain="global" view="Default view">50571d3147032100ba13a5554ee49002</sys_ui_section><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><type/></sys_ui_element><sys_ui_section action="INSERT_OR_UPDATE"><caption/><header>false</header><name>sp_portal</name><roles/><sys_class_name>sys_ui_section</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2015-12-14 20:44:49</sys_created_on><sys_customer_update>false</sys_customer_update><sys_domain>global</sys_domain><sys_domain_path>/</sys_domain_path><sys_id>50571d3147032100ba13a5554ee49002</sys_id><sys_mod_count>1</sys_mod_count><sys_name>sp_portal</sys_name><sys_overrides/><sys_package display_value="Service Portal - Core" source="com.glide.service-portal">adc73f1a4f5b1200c664c0818110c703</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sys_ui_section_50571d3147032100ba13a5554ee49002</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-12 11:19:00</sys_updated_on><sys_user/><title>true</title><view display_value="Default view" name="NULL">Default view</view><view_name/></sys_ui_section></sys_ui_section></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>d1e5924213e0a6003e2250f82244b0f2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table>sp_portal</table>
+<target_name>Service Portal</target_name>
+<type>Form Layout</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_column_82c22574132c26003e2250f82244b0fa</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_column"><sp_column action="INSERT_OR_UPDATE"><class_name/><order>1</order><size>12</size><size_lg/><size_sm/><size_xs/><sp_row display_value="1">0ec22574132c26003e2250f82244b0f9</sp_row><sys_class_name>sp_column</sys_class_name><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-08 21:29:57</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>82c22574132c26003e2250f82244b0fa</sys_id><sys_mod_count>0</sys_mod_count><sys_name>1</sys_name><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_column_82c22574132c26003e2250f82244b0fa</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-08 21:29:57</sys_updated_on></sp_column></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>d9e5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>1</target_name>
+<type>Column</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sp_row_0ec22574132c26003e2250f82244b0f9</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_row"><sp_row action="INSERT_OR_UPDATE"><class_name/><order>1</order><sp_column/><sp_container display_value="Hackathon Registration - Container 1">85c22574132c26003e2250f82244b0eb</sp_container><sys_class_name>sp_row</sys_class_name><sys_created_by>frank.schuster</sys_created_by><sys_created_on>2016-07-08 21:29:57</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>0ec22574132c26003e2250f82244b0f9</sys_id><sys_mod_count>0</sys_mod_count><sys_name>1</sys_name><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_row_0ec22574132c26003e2250f82244b0f9</sys_update_name><sys_updated_by>frank.schuster</sys_updated_by><sys_updated_on>2016-07-08 21:29:57</sys_updated_on></sp_row></record_update>]]></payload>
+<remote_update_set display_value="SP Enablement - Hackathon Registration Widget">59e5924213e0a6003e2250f82244b0f1</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>frank.schuster</sys_created_by>
+<sys_created_on>2016-07-12 22:25:40</sys_created_on>
+<sys_id>dde5924213e0a6003e2250f82244b0f1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>frank.schuster</sys_updated_by>
+<sys_updated_on>2016-07-12 22:25:40</sys_updated_on>
+<table/>
+<target_name>1</target_name>
+<type>Row</type>
+<update_domain>global</update_domain>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+</unload>
